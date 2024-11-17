@@ -40,6 +40,11 @@ func main() {
 				Action: list,
 			},
 			{
+				Name:   "releases",
+				Usage:  "list all go releases",
+				Action: releases,
+			},
+			{
 				Name:   "env",
 				Usage:  "print gvm env",
 				Action: env,
