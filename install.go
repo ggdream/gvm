@@ -29,26 +29,30 @@ func install(ctx context.Context, cmd *cli.Command) error {
 	_, err := os.Stat(tempPath)
 	if err != nil {
 		if os.IsNotExist(err) {
-
 			url := gvmhost + "/dl/" + name
 			res, err := http.Get(url)
 			if err != nil {
 				return err
 			}
 			defer res.Body.Close()
-
-			file, err := os.OpenFile(tempPath, os.O_CREATE|os.O_WRONLY, 0644)
+			file, err := os.CreateTemp(os.TempDir(), tempPath)
 			if err != nil {
 				return err
 			}
-			defer file.Close()
 
 			bar := progressbar.DefaultBytes(
 				res.ContentLength,
 				fmt.Sprintf("Downloading Go%s\n", cmd.Args().First()),
 			)
-			_, err = io.Copy(io.MultiWriter(file, bar), res.Body)
-			if err != nil {
+			if _, err = io.Copy(io.MultiWriter(file, bar), res.Body); err != nil {
+				_ = file.Close()
+				return err
+			}
+
+			if err = file.Close(); err != nil {
+				return err
+			}
+			if err = os.Rename(file.Name(), tempPath); err != nil {
 				return err
 			}
 		} else {
