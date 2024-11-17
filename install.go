@@ -67,13 +67,12 @@ func install(ctx context.Context, cmd *cli.Command) error {
 		return err
 	}
 
-	versionsPath := filepath.Join(gvmhome, "versions")
-	err = archiver.Extract(versionsPath, tempPath, runtime.NumCPU()-1)
+	err = archiver.Extract(goversions, tempPath, runtime.NumCPU()-1)
 	if err != nil {
 		return nil
 	}
 
-	err = os.Rename(filepath.Join(versionsPath, "go"), filepath.Join(versionsPath, cmd.Args().First()))
+	err = os.Rename(filepath.Join(goversions, "go"), filepath.Join(goversions, cmd.Args().First()))
 	if err != nil {
 		return err
 	}

@@ -8,9 +8,10 @@ import (
 )
 
 var (
-	gvmhome = os.Getenv("GVM_HOME")
-	gvmhost = os.Getenv("GVM_HOST")
-	goroot  = runtime.GOROOT()
+	gvmhome    = os.Getenv("GVM_HOME")
+	gvmhost    = os.Getenv("GVM_HOST")
+	goroot     = runtime.GOROOT()
+	goversions string
 )
 
 func init() {
@@ -29,5 +30,5 @@ func init() {
 		gvmhost = "https://golang.google.cn"
 	}
 
-	goroot = `C:\Users\mocar\code\test`
+	goversions = filepath.Join(gvmhome, "versions")
 }

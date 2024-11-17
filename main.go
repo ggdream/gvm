@@ -29,6 +29,11 @@ func main() {
 				Usage:  "set global go version",
 				Action: global,
 			},
+			{
+				Name:   "list",
+				Usage:  "list all go versions",
+				Action: list,
+			},
 		},
 		Version: fmt.Sprintf("GVM %s (git commit %s) built on %s", version, commit, date),
 	}
