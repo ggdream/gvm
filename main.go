@@ -32,6 +32,9 @@ func main() {
 		},
 		Version: fmt.Sprintf("GVM %s (git commit %s) built on %s", version, commit, date),
 	}
+	if version == "" || commit == "" || date == "" {
+		app.Version = "The developer custom version"
+	}
 
 	if err := app.Run(context.Background(), os.Args); err != nil {
 		fmt.Fprintln(os.Stderr, err)
