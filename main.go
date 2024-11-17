@@ -8,6 +8,12 @@ import (
 	"github.com/urfave/cli/v3"
 )
 
+var (
+	version string
+	commit  string
+	date    string
+)
+
 func main() {
 	app := cli.Command{
 		Name:  "gvm",
@@ -24,6 +30,7 @@ func main() {
 				Action: global,
 			},
 		},
+		Version: fmt.Sprintf("GVM %s (git commit %s) built on %s", version, commit, date),
 	}
 
 	if err := app.Run(context.Background(), os.Args); err != nil {
