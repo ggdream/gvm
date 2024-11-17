@@ -28,6 +28,4 @@ func init() {
 		// gvmhost = "https://go.dev"
 		gvmhost = "https://golang.google.cn"
 	}
-
-	goroot = `C:\Users\mocar\code\test`
 }
