@@ -25,6 +25,11 @@ func main() {
 				Action: install,
 			},
 			{
+				Name:   "remove",
+				Usage:  "remove go version",
+				Action: remove,
+			},
+			{
 				Name:   "global",
 				Usage:  "set global go version",
 				Action: global,
@@ -33,6 +38,11 @@ func main() {
 				Name:   "list",
 				Usage:  "list all go versions",
 				Action: list,
+			},
+			{
+				Name:   "env",
+				Usage:  "print gvm env",
+				Action: env,
 			},
 		},
 		Version: fmt.Sprintf("GVM %s (git commit %s) built on %s", version, commit, date),
