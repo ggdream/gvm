@@ -35,7 +35,7 @@ func install(ctx context.Context, cmd *cli.Command) error {
 				return err
 			}
 			defer res.Body.Close()
-			file, err := os.CreateTemp(os.TempDir(), tempPath)
+			file, err := os.Create(tempPath)
 			if err != nil {
 				return err
 			}

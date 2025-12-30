@@ -100,11 +100,29 @@ func extractZipFile(file *zip.File, targetPath string, bar *progressbar.Progress
 type TarGz struct{}
 
 func (t *TarGz) Extract(targetPath string, path string, maxConcurrency int) error {
-	reader, err := os.Open(path)
+	file, err := os.Open(path)
 	if err != nil {
 		return err
 	}
-	gzipReader, err := gzip.NewReader(reader)
+	defer file.Close()
+
+	// Get file size for progress bar
+	stat, err := file.Stat()
+	if err != nil {
+		return fmt.Errorf("failed to stat file: %w", err)
+	}
+
+	bar := progressbar.DefaultBytes(
+		stat.Size(),
+		fmt.Sprintf("Extract %s\n", filepath.Base(path)),
+	)
+
+	// Wrap file reader with progress bar
+	// Note: We track compressed bytes read, which is more accurate for a stream 
+    // and avoids reading the file twice.
+	maxReader := io.TeeReader(file, bar)
+
+	gzipReader, err := gzip.NewReader(maxReader)
 	if err != nil {
 		return fmt.Errorf("failed to create gzip reader: %w", err)
 	}
@@ -112,27 +130,6 @@ func (t *TarGz) Extract(targetPath string, path string, maxConcurrency int) erro
 
 	tarReader := tar.NewReader(gzipReader)
 
-	// Calculate total size of all files in the TAR archive
-	var totalSize int64
-	for {
-		header, err := tarReader.Next()
-		if err == io.EOF {
-			break
-		}
-		if err != nil {
-			return fmt.Errorf("failed to read tar file: %w", err)
-		}
-		totalSize += header.Size
-	}
-
-	bar := progressbar.DefaultBytes(
-		totalSize,
-		fmt.Sprintf("Extract %s\n", filepath.Base(path)),
-	)
-	// Semaphore for limiting concurrency
-	sem := make(chan struct{}, maxConcurrency)
-	var wg sync.WaitGroup
-
 	for {
 		header, err := tarReader.Next()
 		if err == io.EOF {
@@ -142,44 +139,39 @@ func (t *TarGz) Extract(targetPath string, path string, maxConcurrency int) erro
 			return fmt.Errorf("failed to read tar file: %w", err)
 		}
 
-		wg.Add(1)
-		sem <- struct{}{} // acquire a token
-
-		go func(header *tar.Header) {
-			defer wg.Done()
-			defer func() { <-sem }() // release the token when done
-
-			targetFilePath := filepath.Join(targetPath, header.Name)
-			switch header.Typeflag {
-			case tar.TypeDir:
-				if err := os.MkdirAll(targetFilePath, os.ModePerm); err != nil {
-					fmt.Printf("failed to create directory: %v\n", err)
-				}
-			case tar.TypeReg:
-				if err := extractTarFile(tarReader, targetFilePath, header, bar); err != nil {
-					fmt.Printf("failed to extract tar file: %v\n", err)
-				}
+		targetFilePath := filepath.Join(targetPath, header.Name)
+		switch header.Typeflag {
+		case tar.TypeDir:
+			if err := os.MkdirAll(targetFilePath, os.ModePerm); err != nil {
+				fmt.Printf("failed to create directory: %v\n", err)
 			}
-		}(header)
+		case tar.TypeReg:
+			// Create parent directory if it doesn't exist
+			if err := os.MkdirAll(filepath.Dir(targetFilePath), os.ModePerm); err != nil {
+				fmt.Printf("failed to create directory: %v\n", err)
+			}
+			if err := extractTarFile(tarReader, targetFilePath, header); err != nil {
+				fmt.Printf("failed to extract tar file: %v\n", err)
+			}
+		}
 	}
 
-	wg.Wait() // wait for all goroutines to finish
 	return nil
 }
 
-func extractTarFile(tarReader io.Reader, targetPath string, _ *tar.Header, bar *progressbar.ProgressBar) error {
+func extractTarFile(tarReader io.Reader, targetPath string, _ *tar.Header) error {
 	outFile, err := os.Create(targetPath)
 	if err != nil {
 		return fmt.Errorf("failed to create file: %w", err)
 	}
 	defer outFile.Close()
 
-	n, err := io.Copy(outFile, tarReader)
+	_, err = io.Copy(outFile, tarReader)
 	if err != nil {
 		return fmt.Errorf("failed to copy file contents: %w", err)
 	}
 
-	return bar.Add64(n)
+	return nil
 }
 
 // 工厂函数，根据压缩类型返回对应的 Archiver 实现
